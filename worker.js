@@ -29,46 +29,55 @@ export default {
         if(!Array.isArray(data))throw new Error('Unexpected history format');
         return json(data);
       }
-      if(url.pathname==='/heuristic-history'){
-        // AHCだけは「コンテスト開催期間内に提出した」ことを参加の条件とする。
-        // コンテスト終了後の練習提出はカウントしない。
+      if(url.pathname==='/participation'){
+        // Algorithm / Heuristic / Other をすべて開催期間内の提出だけで判定。
+        // 同一ユーザーの集計結果をキャッシュして、再集計を高速化する。
+        const cache=caches.default,cacheKey=new Request(url.toString(),{method:'GET'});
+        const cached=await cache.match(cacheKey);
+        if(cached)return cached;
         const contests=await load('https://kenkoooo.com/atcoder/resources/contests.json');
         if(!Array.isArray(contests))throw new Error('Unexpected contests format');
-        const ahcs=new Map();
+        const byId=new Map();
+        let earliest=Infinity;
         for(const contest of contests){
-          if(!/^ahc\d+/i.test(String(contest.id||'')))continue;
+          const id=String(contest.id||'').toLowerCase();
           const start=Number(contest.start_epoch_second),duration=Number(contest.duration_second);
-          if(Number.isFinite(start)&&start>0&&Number.isFinite(duration)&&duration>0){
-            ahcs.set(String(contest.id).toLowerCase(),{start,end:start+duration});
-          }
+          if(!id||!Number.isFinite(start)||start<=0||!Number.isFinite(duration)||duration<=0)continue;
+          byId.set(id,{...contest,id,start,end:start+duration});
+          earliest=Math.min(earliest,start);
         }
-        if(ahcs.size===0)throw new Error('No AHC contest metadata available');
-        // AHC開始前の大量の提出は取得しない。
-        let from=Math.min(...[...ahcs.values()].map(c=>c.start));
-        const found=new Set(),seenSubmissions=new Set();
-        let completed=false;
+        if(!byId.size)throw new Error('No valid contest metadata');
+        let from=earliest,completed=false,pages=0;
+        const found=new Set(),seen=new Set();
         for(let page=0;page<20;page++){
-          // AtCoder Problemsは連続APIアクセスを1秒以上空けるよう案内している。
           if(page>0)await new Promise(resolve=>setTimeout(resolve,1100));
           const data=await load(`https://kenkoooo.com/atcoder/atcoder-api/v3/user/submissions?user=${encodeURIComponent(user)}&from_second=${from}`);
           if(!Array.isArray(data))throw new Error('Unexpected submissions format');
+          pages++;
           for(const sub of data){
-            const id=String(sub.contest_id||'').toLowerCase();
-            const contest=ahcs.get(id),epoch=Number(sub.epoch_second);
-            if(!contest||!Number.isFinite(epoch))continue;
-            if(epoch>=contest.start&&epoch<contest.end)found.add(id);
+            const id=String(sub.contest_id||'').toLowerCase(),c=byId.get(id);
+            const epoch=Number(sub.epoch_second);
+            if(c&&Number.isFinite(epoch)&&epoch>=c.start&&epoch<c.end)found.add(id);
           }
           if(data.length<500){completed=true;break;}
           const last=Number(data[data.length-1]?.epoch_second);
           if(!Number.isFinite(last)||last<from)throw new Error('Invalid submission pagination');
-          // 境界の同秒提出も落とさないよう、最後の秒から再取得する。
-          const fresh=data.some(sub=>!seenSubmissions.has(String(sub.id)));
+          // 同じ秒の複数提出を落とさないよう境界秒も再取得する。
+          const fresh=data.some(sub=>!seen.has(String(sub.id)));
           if(!fresh&&last===from)throw new Error('Submission pagination stalled');
-          for(const sub of data)seenSubmissions.add(String(sub.id));
+          for(const sub of data)seen.add(String(sub.id));
           from=last;
         }
-        if(!completed)throw new Error('Too many submissions to scan completely (20-page limit)');
-        return json([...found].map(id=>({ContestScreenName:id})));
+        if(!completed)throw new Error('Submission history exceeds 20-page scan limit: refusing incomplete totals');
+        const matched=[...found].map(id=>{
+          const {start,end,...contest}=byId.get(id);
+          return contest;
+        });
+        const response=new Response(JSON.stringify({contests:matched,pages}),{
+          headers:{...cors,'Cache-Control':'public, max-age=600'}
+        });
+        await cache.put(cacheKey,response.clone());
+        return response;
       }
       return json({error:'Not found'},404);
     }catch(err){return json({error:'Upstream API error',detail:String(err.message||err)},502);}
