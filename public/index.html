@@ -35,7 +35,7 @@
 </div>
 <div class="card history"><div class="history-head"><h2>コンテスト履歴</h2><div class="controls"><select id="filter" aria-label="種別で絞り込み"><option value="all">すべて</option><option>ABC</option><option>ARC</option><option>AGC</option><option>AHC</option><option value="Other">その他</option></select><button id="csv" class="secondary" type="button">CSV ダウンロード ↓</button></div></div><p id="coverage" class="note"></p><div class="table-scroll"><table><thead><tr><th>開催日</th><th>コンテスト</th><th>種別</th><th>開催時間</th><th>順位</th></tr></thead><tbody id="rows"></tbody></table></div><p id="empty" class="note hidden">該当するコンテストはありません。</p></div>
 </section>
-<footer class="note">※ 集計値は実際の作業時間ではなく、AtCoderの公開参加結果履歴に記録されたコンテストの開催時間です。提出履歴は使用しません。参加履歴に載らないコンテストは含まれません。<br>データ提供元：AtCoder / AtCoder Problems（非公式API）</footer>
+<footer class="note">※ 集計値は実際の作業時間ではなく、コンテストの開催時間です。ALGO・OTHERは公開参加結果履歴から集計し、HEU（AHC）は開催期間内に1件以上提出があったコンテストを集計します。終了後の練習提出は含みません。<br>データ提供元：AtCoder / AtCoder Problems（非公式API）</footer>
 </main>
 <script>
 'use strict';
@@ -79,7 +79,7 @@ function joinData(history,contests){
   const contestMap=new Map();
   for(const c of contests){const id=canonicalId(c.id);if(id)contestMap.set(id,c);}
   const seen=new Set(),result=[];let unmatched=0,invalid=0;
-  // Algorithm・Heuristicの公開参加結果履歴だけを集計する。
+  // ALGO・OTHERは公式参加結果履歴、HEUは開催期間内の提出があるAHCを集計する。
   for(const h of history){
     const id=canonicalId(h.ContestScreenName??h.contest_id??h.contestId??h.id);
     if(!id||seen.has(id))continue;
@@ -192,7 +192,7 @@ function render(history,contests,user){
 el('form').addEventListener('submit',async e=>{
   e.preventDefault();const user=el('username').value.trim();
   if(!/^[A-Za-z0-9_-]{1,40}$/.test(user)){status('ユーザー名は英数字・_・-で入力してください。',true);return;}
-  el('submit').disabled=true;el('results').classList.add('hidden');status('参加履歴とコンテスト一覧を取得しています…');
+  el('submit').disabled=true;el('results').classList.add('hidden');status('参加履歴・AHC開催期間内の提出・コンテスト一覧を取得しています…');
   try{
     const [history,heuristicHistory,contests]=await Promise.all([
       fetchData('/history?user='+encodeURIComponent(user)),
@@ -201,7 +201,7 @@ el('form').addEventListener('submit',async e=>{
     ]);
     const heuUnavailable=!Array.isArray(heuristicHistory);
     render([...history,...(heuUnavailable?[]:heuristicHistory)],contests,user);
-    if(heuUnavailable)status('Algorithmの集計は完了しました。ただしHeuristic参加履歴の取得に失敗したため、HEUの値は未取得です。'+heuristicHistory.error,true);
+    if(heuUnavailable)status('ALGOの集計は完了しました。ただしHEU用の開催期間内提出データ取得に失敗したため、HEUは未取得です。'+heuristicHistory.error,true);
   }catch(err){console.error(err);status(err.message||'集計に失敗しました',true);}
   finally{el('submit').disabled=false;}
 });
