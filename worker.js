@@ -36,7 +36,7 @@ export default {
         if(!Array.isArray(contests))throw new Error('Unexpected contests format');
         const ahcs=new Map();
         for(const contest of contests){
-          if(!/^ahc\\d+/i.test(String(contest.id||'')))continue;
+          if(!/^ahc\d+/i.test(String(contest.id||'')))continue;
           const start=Number(contest.start_epoch_second),duration=Number(contest.duration_second);
           if(Number.isFinite(start)&&start>0&&Number.isFinite(duration)&&duration>0){
             ahcs.set(String(contest.id).toLowerCase(),{start,end:start+duration});
