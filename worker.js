@@ -8,7 +8,7 @@ const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:
 const valid=user=>/^[A-Za-z0-9_-]{1,40}$/.test(user);
 async function load(url){
   const res=await fetch(url,{headers:{Accept:'application/json'}});
-  if(!res.ok)throw new Error(`Upstream HTTP ${res.status}`);
+  if(!res.ok)throw new Error(`Upstream HTTP ${res.status} from ${new URL(url).hostname}`);
   return res.json();
 }
 export default {
