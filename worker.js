@@ -34,23 +34,6 @@ export default {
         if(!Array.isArray(data))throw new Error('Unexpected heuristic history format');
         return json(data);
       }
-      if(url.pathname==='/participated'){
-        // AtCoder Problems submission API: max 500 submissions per request.
-        // Pagination is bounded to avoid unbounded Worker execution.
-        const ids=new Set();let from=0,partial=false;
-        for(let page=0;page<20;page++){
-          const data=await load(`https://kenkoooo.com/atcoder/atcoder-api/v3/user/submissions?user=${encodeURIComponent(user)}&from_second=${from}`);
-          if(!Array.isArray(data))throw new Error('Unexpected submissions format');
-          for(const entry of data)if(typeof entry.contest_id==='string')ids.add(entry.contest_id);
-          if(data.length<500){partial=false;break;}
-          if(page===19){partial=true;break;}
-          const last=Number(data[data.length-1]?.epoch_second);
-          if(!Number.isFinite(last)||last<from)throw new Error('Invalid pagination');
-          // Same-second boundary may omit submissions; conservative flag.
-          from=last+1;
-        }
-        return json({contestIds:[...ids],partial});
-      }
       return json({error:'Not found'},404);
     }catch(err){return json({error:'Upstream API error',detail:String(err.message||err)},502);}
   }
