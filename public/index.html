@@ -60,14 +60,15 @@ function category(id,title=''){
   if(t.includes('heuristic contest'))return 'AHC';
   return 'Other';
 }
-async function fetchData(path){
+async function fetchData(path, expected='array'){
   let response;
   try{response=await fetch(API+path,{headers:{Accept:'application/json'}});}
   catch(e){throw new Error(`APIへの接続に失敗しました（ネットワーク/CORS）。${e.message}`);}
   let data;
   try{data=await response.json();}catch{throw new Error(`${path} がJSONを返しませんでした（HTTP ${response.status}）`);}
   if(!response.ok)throw new Error(`${path}: ${data.error||'APIエラー'}（HTTP ${response.status}${data.upstreamStatus?`、取得元 ${data.upstreamStatus}`:''}）`);
-  if(!Array.isArray(data))throw new Error(`${path} のデータ形式が不正です`);
+  if(expected==='array' && !Array.isArray(data))throw new Error(`${path} のデータ形式が不正です`);
+  if(expected==='participated' && (!data || typeof data!=='object' || !Array.isArray(data.contestIds)))throw new Error(`${path} の提出履歴データ形式が不正です`);
   return data;
 }
 function joinData(history,contests,participated=[]){
@@ -155,7 +156,7 @@ el('form').addEventListener('submit',async e=>{
     const [history,contests,extra]=await Promise.all([
       fetchData('/history?user='+encodeURIComponent(user)),
       fetchData('/contests'),
-      fetchData('/participated?user='+encodeURIComponent(user)).catch(err=>{
+      fetchData('/participated?user='+encodeURIComponent(user),'participated').catch(err=>{
         console.warn('提出履歴による補完は利用できません:',err.message);
         return {contestIds:[],partial:false,unavailable:true};
       })
