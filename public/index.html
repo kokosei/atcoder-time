@@ -196,10 +196,12 @@ el('form').addEventListener('submit',async e=>{
   try{
     const [history,heuristicHistory,contests]=await Promise.all([
       fetchData('/history?user='+encodeURIComponent(user)),
-      fetchData('/heuristic-history?user='+encodeURIComponent(user)),
+      fetchData('/heuristic-history?user='+encodeURIComponent(user)).catch(err=>({unavailable:true,error:err.message})),
       fetchData('/contests')
     ]);
-    render([...history,...heuristicHistory],contests,user);
+    const heuUnavailable=!Array.isArray(heuristicHistory);
+    render([...history,...(heuUnavailable?[]:heuristicHistory)],contests,user);
+    if(heuUnavailable)status('Algorithmの集計は完了しました。ただしHeuristic参加履歴の取得に失敗したため、HEUの値は未取得です。'+heuristicHistory.error,true);
   }catch(err){console.error(err);status(err.message||'集計に失敗しました',true);}
   finally{el('submit').disabled=false;}
 });
