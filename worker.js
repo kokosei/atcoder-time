@@ -29,6 +29,11 @@ export default {
         if(!Array.isArray(data))throw new Error('Unexpected history format');
         return json(data);
       }
+      if(url.pathname==='/heuristic-history'){
+        const data=await load(`https://kenkoooo.com/atcoder/proxy/users/${encodeURIComponent(user)}/history/json?contestType=heuristic`);
+        if(!Array.isArray(data))throw new Error('Unexpected heuristic history format');
+        return json(data);
+      }
       if(url.pathname==='/participated'){
         // AtCoder Problems submission API: max 500 submissions per request.
         // Pagination is bounded to avoid unbounded Worker execution.
