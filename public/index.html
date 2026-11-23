@@ -71,7 +71,7 @@ async function fetchData(path){
   catch(e){throw new Error(`APIへの接続に失敗しました（ネットワーク/CORS）。${e.message}`);}
   let data;
   try{data=await response.json();}catch{throw new Error(`${path} がJSONを返しませんでした（HTTP ${response.status}）`);}
-  if(!response.ok)throw new Error(`${path}: ${data.error||'APIエラー'}（HTTP ${response.status}${data.upstreamStatus?`、取得元 ${data.upstreamStatus}`:''}）`);
+  if(!response.ok)throw new Error(`${path}: ${data.error||'APIエラー'}（HTTP ${response.status}${data.detail?`、詳細: ${data.detail}`:''}）`);
   if(!Array.isArray(data))throw new Error(`${path} のデータ形式が不正です`);
   return data;
 }
