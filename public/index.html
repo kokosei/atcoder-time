@@ -153,8 +153,9 @@ el('form').addEventListener('submit',async e=>{
   if(!/^[A-Za-z0-9_-]{1,40}$/.test(user)){status('ユーザー名は英数字・_・-で入力してください。',true);return;}
   el('submit').disabled=true;el('results').classList.add('hidden');status('参加履歴とコンテスト一覧を取得しています…');
   try{
-    const [history,contests,extra]=await Promise.all([
+    const [history,heuristicHistory,contests,extra]=await Promise.all([
       fetchData('/history?user='+encodeURIComponent(user)),
+      fetchData('/heuristic-history?user='+encodeURIComponent(user)).catch(err=>{console.warn('Heuristic結果履歴を取得できません:',err.message);return [];}),
       fetchData('/contests'),
       fetchData('/participated?user='+encodeURIComponent(user),'participated').catch(err=>{
         console.warn('提出履歴による補完は利用できません:',err.message);
@@ -162,7 +163,7 @@ el('form').addEventListener('submit',async e=>{
       })
     ]);
     if(!extra.unavailable && !Array.isArray(extra.contestIds))throw new Error('提出履歴データが不正です');
-    render(history,contests,user,extra.contestIds||[],Boolean(extra.partial));
+    render([...history,...heuristicHistory],contests,user,extra.contestIds||[],Boolean(extra.partial));
     if(extra.unavailable)status('集計完了。ただし提出履歴によるAHC・その他の補完は未対応です。');
   }catch(err){console.error(err);status(err.message||'集計に失敗しました',true);}
   finally{el('submit').disabled=false;}
