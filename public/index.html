@@ -26,11 +26,11 @@
 </div>
 <div class="breakdown" aria-label="部門別の累計開催時間">
 <div class="card"><div class="label">ALGO <span class="note">ABC・ARC・AGC</span></div><div id="algo-hours" class="number">—</div><div id="algo-count" class="note"></div></div>
-<div class="card"><div class="label">HUE <span class="note">AHC</span></div><div id="hue-hours" class="number">—</div><div id="hue-count" class="note"></div></div>
+<div class="card"><div class="label">HEU <span class="note">AHC</span></div><div id="heu-hours" class="number">—</div><div id="heu-count" class="note"></div></div>
 <div class="card"><div class="label">OTHER <span class="note">その他</span></div><div id="other-hours" class="number">—</div><div id="other-count" class="note"></div></div>
 </div>
 <div class="grid">
-<div class="card"><h2>年別の参加時間</h2><div class="chart-legend"><span><i style="background:#85efb9"></i>ALGO</span><span><i style="background:#d9a2ff"></i>HUE</span><span><i style="background:#a3b0c3"></i>OTHER</span></div><div class="chart-layout"><div id="year-axis" class="chart-axis" aria-label="時間の目盛り"></div><div class="chart-plot"><div id="years" class="bars" aria-label="年別の分野別参加時間グラフ"></div></div></div><div id="chart-detail" class="chart-detail" aria-live="polite">グラフの色付き部分を選択すると正確な時間を表示します。</div></div>
+<div class="card"><h2>年別の参加時間</h2><div class="chart-legend"><span><i style="background:#85efb9"></i>ALGO</span><span><i style="background:#d9a2ff"></i>HEU</span><span><i style="background:#a3b0c3"></i>OTHER</span></div><div class="chart-layout"><div id="year-axis" class="chart-axis" aria-label="時間の目盛り"></div><div class="chart-plot"><div id="years" class="bars" aria-label="年別の分野別参加時間グラフ"></div></div></div><div id="chart-detail" class="chart-detail" aria-live="polite">グラフの色付き部分を選択すると正確な時間を表示します。</div></div>
 <div class="card"><h2>コンテスト種別</h2><div id="types" class="types"></div></div>
 </div>
 <div class="card history"><div class="history-head"><h2>コンテスト履歴</h2><div class="controls"><select id="filter" aria-label="種別で絞り込み"><option value="all">すべて</option><option>ABC</option><option>ARC</option><option>AGC</option><option>AHC</option><option value="Other">その他</option></select><button id="csv" class="secondary" type="button">CSV ダウンロード ↓</button></div></div><p id="coverage" class="note"></p><div class="table-scroll"><table><thead><tr><th>開催日</th><th>コンテスト</th><th>種別</th><th>開催時間</th><th>順位</th></tr></thead><tbody id="rows"></tbody></table></div><p id="empty" class="note hidden">該当するコンテストはありません。</p></div>
@@ -97,12 +97,12 @@ function joinData(history,contests){
   return {result,unmatched,invalid};
 }
 function renderYears(){
-  const groups=['ALGO','HUE','OTHER'];
-  const colors={ALGO:'#85efb9',HUE:'#d9a2ff',OTHER:'#a3b0c3'};
-  const groupOf=r=>['ABC','ARC','AGC'].includes(r.type)?'ALGO':r.type==='AHC'?'HUE':'OTHER';
+  const groups=['ALGO','HEU','OTHER'];
+  const colors={ALGO:'#85efb9',HEU:'#d9a2ff',OTHER:'#a3b0c3'};
+  const groupOf=r=>['ABC','ARC','AGC'].includes(r.type)?'ALGO':r.type==='AHC'?'HEU':'OTHER';
   const totals=new Map();
   for(const r of rows){
-    if(!totals.has(r.year))totals.set(r.year,{ALGO:0,HUE:0,OTHER:0});
+    if(!totals.has(r.year))totals.set(r.year,{ALGO:0,HEU:0,OTHER:0});
     totals.get(r.year)[groupOf(r)]+=r.seconds;
   }
   const items=[...totals].sort((a,b)=>a[0]-b[0]);
@@ -179,7 +179,7 @@ function render(history,contests,user){
   el('total').textContent=formatHours(total);el('total-detail').textContent=formatDuration(total);
   el('count').textContent=rows.length.toLocaleString('ja-JP')+'回';
   el('average').textContent=rows.length?formatHours(total/rows.length):'—';
-  const groups={algo:rows.filter(r=>['ABC','ARC','AGC'].includes(r.type)),hue:rows.filter(r=>r.type==='AHC'),other:rows.filter(r=>r.type==='Other')};
+  const groups={algo:rows.filter(r=>['ABC','ARC','AGC'].includes(r.type)),heu:rows.filter(r=>r.type==='AHC'),other:rows.filter(r=>r.type==='Other')};
   for(const [key,items] of Object.entries(groups)){
     el(key+'-hours').textContent=formatHours(items.reduce((sum,r)=>sum+r.seconds,0));
     el(key+'-count').textContent=items.length.toLocaleString('ja-JP')+'コンテスト';
